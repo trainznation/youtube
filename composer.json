@@ -1,6 +1,6 @@
 {
-    "name": "dawson/youtube",
-    "description": "Upload a video to YouTube with Laravel 5.",
+    "name": "trainznation/youtube",
+    "description": "Upload a video to YouTube with Laravel 5. fork from dawson/youtube",
     "license": "MIT",
     "authors": [
         {

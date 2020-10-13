@@ -2,9 +2,16 @@
 
 namespace Dawson\Youtube;
 
+use DateTime;
 use Exception;
 use Google_Client;
+use Google_Exception;
+use Google_Http_MediaFileUpload;
+use Google_Service_Exception;
 use Google_Service_YouTube;
+use Google_Service_YouTube_Video;
+use Google_Service_YouTube_VideoSnippet;
+use Google_Service_YouTube_VideoStatus;
 use Illuminate\Support\Facades\DB;
 
 class Youtube
@@ -19,14 +26,14 @@ class Youtube
     /**
      * Google Client
      *
-     * @var \Google_Client
+     * @var Google_Client
      */
     protected $client;
 
     /**
      * Google YouTube Service
      *
-     * @var \Google_Service_YouTube
+     * @var Google_Service_YouTube
      */
     protected $youtube;
 
@@ -54,7 +61,7 @@ class Youtube
     /**
      * Constructor
      *
-     * @param \Google_Client $client
+     * @param Google_Client $client
      */
     public function __construct($app, Google_Client $client)
     {
@@ -62,7 +69,7 @@ class Youtube
 
         $this->client = $this->setup($client);
 
-        $this->youtube = new \Google_Service_YouTube($this->client);
+        $this->youtube = new Google_Service_YouTube($this->client);
 
         if ($accessToken = $this->getLatestAccessTokenFromDB()) {
             $this->client->setAccessToken($accessToken);
@@ -99,7 +106,7 @@ class Youtube
             $insert = $this->youtube->videos->insert('status,snippet', $video);
 
             // Upload
-            $media = new \Google_Http_MediaFileUpload(
+            $media = new Google_Http_MediaFileUpload(
                 $this->client,
                 $insert,
                 'video/*',
@@ -130,9 +137,9 @@ class Youtube
             // Set the Snippet from Uploaded Video
             $this->snippet = $status['snippet'];
 
-        }  catch (\Google_Service_Exception $e) {
+        }  catch (Google_Service_Exception $e) {
             throw new Exception($e->getMessage());
-        } catch (\Google_Exception $e) {
+        } catch (Google_Exception $e) {
             throw new Exception($e->getMessage());
         }
 
@@ -166,9 +173,9 @@ class Youtube
 
             // Set the Snippet from Updated Video
             $this->snippet = $status['snippet'];
-        }  catch (\Google_Service_Exception $e) {
+        }  catch (Google_Service_Exception $e) {
             throw new Exception($e->getMessage());
-        } catch (\Google_Exception $e) {
+        } catch (Google_Exception $e) {
             throw new Exception($e->getMessage());
         }
 
@@ -193,7 +200,7 @@ class Youtube
 
             $setRequest = $this->youtube->thumbnails->set($videoId);
 
-            $media = new \Google_Http_MediaFileUpload(
+            $media = new Google_Http_MediaFileUpload(
                 $this->client,
                 $setRequest,
                 'image/png',
@@ -216,9 +223,9 @@ class Youtube
             $this->client->setDefer(false);
             $this->thumbnailUrl = $status['items'][0]['default']['url'];
 
-        } catch (\Google_Service_Exception $e) {
+        } catch (Google_Service_Exception $e) {
             throw new Exception($e->getMessage());
-        } catch (\Google_Exception $e) {
+        } catch (Google_Exception $e) {
             throw new Exception($e->getMessage());
         }
 
@@ -247,12 +254,12 @@ class Youtube
      * @param $data
      * @param $privacyStatus
      * @param null $id
-     * @return \Google_Service_YouTube_Video
+     * @return Google_Service_YouTube_Video
      */
-    private function getVideo($data, $privacyStatus, $id = null)
+    public function getVideo($data, $privacyStatus, $id = null)
     {
         // Setup the Snippet
-        $snippet = new \Google_Service_YouTube_VideoSnippet();
+        $snippet = new Google_Service_YouTube_VideoSnippet();
 
         if (array_key_exists('title', $data))       $snippet->setTitle($data['title']);
         if (array_key_exists('description', $data)) $snippet->setDescription($data['description']);
@@ -260,11 +267,11 @@ class Youtube
         if (array_key_exists('category_id', $data)) $snippet->setCategoryId($data['category_id']);
 
         // Set the Privacy Status
-        $status = new \Google_Service_YouTube_VideoStatus();
+        $status = new Google_Service_YouTube_VideoStatus();
         $status->privacyStatus = $privacyStatus;
 
         // Set the Snippet & Status
-        $video = new \Google_Service_YouTube_Video();
+        $video = new Google_Service_YouTube_Video();
         if ($id)
         {
             $video->setId($id);
@@ -363,7 +370,7 @@ class Youtube
     {
         return DB::table('youtube_access_tokens')->insert([
             'access_token' => json_encode($accessToken),
-            'created_at'   => (new \DateTime())->setTimestamp($accessToken['created']),
+            'created_at'   => (new DateTime())->setTimestamp($accessToken['created']),
         ]);
     }
 
@@ -389,7 +396,7 @@ class Youtube
     public function handleAccessToken()
     {
         if (is_null($accessToken = $this->client->getAccessToken())) {
-            throw new \Exception('An access token is required.');
+            throw new Exception('An access token is required.');
         }
 
         if($this->client->isAccessTokenExpired())
